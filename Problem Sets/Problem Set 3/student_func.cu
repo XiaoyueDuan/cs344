@@ -81,6 +81,88 @@
 
 #include "utils.h"
 
+__global__ void reduce_calMin(float * d_out, const float * d_in)
+{	
+	// 1. Use shared Mem
+	extern __shared__ float sdata[];
+	
+	int myId = blockDim.x * blockIdx.x + threadIdx.x;
+	int tid = threadIdx.x;
+	
+	sdata[tid]=d_in[myId];
+	__syncthreads();
+	
+	// 2. Reduce
+	for(int s = blockDim.x / 2 ; s>0 ; s=(s+1)/2 )
+	{
+		if((s % 2 == 0) && (tid < s) ||
+				(s % 2) && (tid < s-1))
+			sdata[tid] = min(sdata[tid] , sdata[tid+s]);
+		
+		__syncthreads();
+	}
+	
+	if(tid == 0)
+		d_out[threadIdx.x] = sdata[tid];
+}
+
+__global__ void reduce_calMax(float * d_out, const float * d_in)
+{	
+	// 1. Use shared Mem
+	extern __shared__ float sdata[];
+	
+	int myId = blockDim.x * blockIdx.x + threadIdx.x;
+	int tid = threadIdx.x;
+	
+	sdata[tid]=d_in[myId];
+	__syncthreads();
+	
+	// 2. Reduce
+	for(int s = blockDim.x / 2 ; s>0 ; s=(s+1)/2 )
+	{
+		if((s % 2 == 0) && (tid < s) ||
+				(s % 2) && (tid < s-1))
+			sdata[tid] = max(sdata[tid] , sdata[tid+s]);
+		
+		__syncthreads();
+	}
+	
+	if(tid == 0)
+		d_out[threadIdx.x] = sdata[tid];
+}
+
+void reduce(float *d_out, float *d_intermediate, float *d_in, 
+			const size_t size,
+			float &min_logLum, float &max_logLum)
+{		
+	// 1. Max reduce
+	int threads = 1024;
+	int blocks = (size + threads - 1) / threads;		
+	
+	checkCudaErrors(cudaMalloc((void **) &d_intermediate, sizeof(float) * blocks)); 
+	checkCudaErrors(cudaMemset((void **) d_intermediate, 0.0f, sizeof(float) * blocks));
+	checkCudaErrors(cudaMalloc((void **) &d_out, sizeof(float)));	
+	
+	reduce_calMax<<<blocks, threads>>>(d_intermediate, d_in, sizeof(float) * threads);
+	
+	threads=blocks;
+	blocks=1;
+	reduce_calMax<<<blocks, threads>>>(d_out, d_intermediate, sizeof(float) * threads);
+	checkCudaErrors(cudaMemcpy(max_logLum, d_out, sizeof(float), cudaMemcpyDeviceToHost);
+	
+	// 2. Min reduce	
+	threads = 1024;
+	blocks = (size + threads - 1) / threads;			
+	
+	checkCudaErrors(cudaMemset((void **) d_intermediate, 1.0f, sizeof(float) * blocks));	
+	reduce_calMin<<<blocks, threads>>>(d_intermediate, d_in, sizeof(float) * threads);
+	
+	threads=blocks;
+	blocks=1;
+	reduce_calMin<<<blocks, threads>>>(d_out, d_intermediate, sizeof(float) * threads);
+	checkCudaErrors(cudaMemcpy(min_logLum, d_out, sizeof(float), cudaMemcpyDeviceToHost);
+}	
+
 void your_histogram_and_prefixsum(const float* const d_logLuminance,
                                   unsigned int* const d_cdf,
                                   float &min_logLum,
@@ -88,7 +170,7 @@ void your_histogram_and_prefixsum(const float* const d_logLuminance,
                                   const size_t numRows,
                                   const size_t numCols,
                                   const size_t numBins)
-{
+{ 
   //TODO
   /*Here are the steps you need to implement
     1) find the minimum and maximum value in the input logLuminance channel
@@ -100,5 +182,10 @@ void your_histogram_and_prefixsum(const float* const d_logLuminance,
        the cumulative distribution of luminance values (this should go in the
        incoming d_cdf pointer which already has been allocated for you)       */
 
-
+  // Step 1
+  int ARRAY_BYTES = numRows * numCols;
+  // declare GPU memory pointers
+  float * d_intermediate, * d_out;
+  
+  reduce(d_out, d_intermediate, d_logLuminance, ARRAY_BYTES, min_logLum, max_logLum);
 }
