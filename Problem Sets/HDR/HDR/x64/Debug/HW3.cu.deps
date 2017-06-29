@@ -391,6 +391,8 @@ C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\cuda_runtime.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\cuda_runtime_api.h
 D:\programming tools\Microsoft Visual Studio 14.0\VC\include\cassert
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\assert.h
+D:\programming tools\Microsoft Visual Studio 14.0\VC\include\algorithm
+D:\programming tools\Microsoft Visual Studio 14.0\VC\include\xmemory
 D:\programming tools\Microsoft Visual Studio 14.0\VC\include\string
 f:\研一下\cuda_learning\cs344\problem sets\hdr\hdr\loadSaveImage.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\cuda_runtime.h
@@ -533,7 +535,6 @@ C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\thrust/detail/fu
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\thrust/detail/functional/operators/compound_assignment_operators.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\thrust/detail/internal_functional.h
 D:\programming tools\Microsoft Visual Studio 14.0\VC\include\memory
-D:\programming tools\Microsoft Visual Studio 14.0\VC\include\xmemory
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\thrust/transform.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\thrust/detail/transform.inl
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\thrust/system/detail/generic/transform.h

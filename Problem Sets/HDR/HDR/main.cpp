@@ -1,4 +1,4 @@
-//Udacity HW3 Driver
+// Udacity HW3 Driver
 
 #include <iostream>
 #include "timer.h"
@@ -120,3 +120,62 @@ int main(int argc, char **argv) {
 
   return 0;
 }
+
+//int main(int argc, char **argv) {
+//	float *d_luminance;
+//	unsigned int *d_cdf;
+//
+//	size_t numRows, numCols;
+//	unsigned int numBins;
+//
+//	std::string input_file;
+//	std::string output_file;
+//	std::string reference_file;
+//	double perPixelError = 0.0;
+//	double globalError = 0.0;
+//	bool useEpsCheck = false;
+//
+//	switch (argc)
+//	{
+//	case 2:
+//		input_file = std::string(argv[1]);
+//		output_file = "HW3_output.png";
+//		reference_file = "HW3_reference.png";
+//		break;
+//	case 3:
+//		input_file = std::string(argv[1]);
+//		output_file = std::string(argv[2]);
+//		reference_file = "HW3_reference.png";
+//		break;
+//	case 4:
+//		input_file = std::string(argv[1]);
+//		output_file = std::string(argv[2]);
+//		reference_file = std::string(argv[3]);
+//		break;
+//	case 6:
+//		useEpsCheck = true;
+//		input_file = std::string(argv[1]);
+//		output_file = std::string(argv[2]);
+//		reference_file = std::string(argv[3]);
+//		perPixelError = atof(argv[4]);
+//		globalError = atof(argv[5]);
+//		break;
+//	default:
+//		std::cerr << "Usage: ./HW3 input_file [output_filename] [reference_filename] [perPixelError] [globalError]" << std::endl;
+//		exit(1);
+//	}
+//	//load the image and give us our input and output pointers
+//	preProcess(&d_luminance, &d_cdf,
+//		&numRows, &numCols, &numBins, input_file);	
+//
+//	float min_logLum, max_logLum;
+//	min_logLum = 0.f;
+//	max_logLum = 1.f;
+//
+//	float *h_luminance = (float *)malloc(sizeof(float)*numRows*numCols);
+//	unsigned int *h_cdf = (unsigned int *)malloc(sizeof(unsigned int)*numBins);
+//	checkCudaErrors(cudaMemcpy(h_luminance, d_luminance, numRows*numCols * sizeof(float), cudaMemcpyDeviceToHost));
+//	referenceCalculation(h_luminance, h_cdf, numRows, numCols, numBins, min_logLum, max_logLum);
+//
+//	return 0;
+//}

@@ -303,8 +303,12 @@ c:\program files\nvidia gpu computing toolkit\cuda\v8.0\include\host_defines.h
 c:\program files\nvidia gpu computing toolkit\cuda\v8.0\include\vector_functions.h
 c:\program files\nvidia gpu computing toolkit\cuda\v8.0\include\device_launch_parameters.h
 c:\program files\nvidia gpu computing toolkit\cuda\v8.0\include\vector_types.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\stdio.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\corecrt_wstdio.h
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\corecrt_stdio_config.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\cuda.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\cuda_runtime.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\device_launch_parameters.h
 f:\研一下\cuda_learning\cs344\problem sets\hdr\hdr\utils.h
 D:\programming tools\Microsoft Visual Studio 14.0\VC\include\iostream
 D:\programming tools\Microsoft Visual Studio 14.0\VC\include\istream
@@ -313,9 +317,6 @@ D:\programming tools\Microsoft Visual Studio 14.0\VC\include\ios
 D:\programming tools\Microsoft Visual Studio 14.0\VC\include\xlocnum
 D:\programming tools\Microsoft Visual Studio 14.0\VC\include\climits
 D:\programming tools\Microsoft Visual Studio 14.0\VC\include\cstdio
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\stdio.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\corecrt_wstdio.h
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\corecrt_stdio_config.h
 D:\programming tools\Microsoft Visual Studio 14.0\VC\include\streambuf
 D:\programming tools\Microsoft Visual Studio 14.0\VC\include\xiosbase
 D:\programming tools\Microsoft Visual Studio 14.0\VC\include\xlocale
@@ -391,3 +392,5 @@ C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\cuda_runtime.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\include\cuda_runtime_api.h
 D:\programming tools\Microsoft Visual Studio 14.0\VC\include\cassert
 C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\assert.h
+D:\programming tools\Microsoft Visual Studio 14.0\VC\include\algorithm
+D:\programming tools\Microsoft Visual Studio 14.0\VC\include\xmemory

@@ -79,12 +79,14 @@
 
 */
 
+#include <stdio.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 #include "utils.h"
 
 // Reduce
-__global__ void reduce_calMin(float* d_out, const float* const d_in, const size_t size)
+__global__ void reduce_calMin(float* d_out, const float* const d_in)
 {	
 	// 1. Use shared Mem
 	extern __shared__ float sdata[];
@@ -96,21 +98,20 @@ __global__ void reduce_calMin(float* d_out, const float* const d_in, const size_
 	__syncthreads();
 	
 	// 2. Reduce
-	for(int s = blockDim.x / 2 ; s>0 ; s=(s+1)/2 )
+	int length = (int)blockDim.x;	
+	for (int i = 0; length>1; ++i)
 	{
-		if ((tid + s<size) &&
-			((s % 2 == 0) && (tid < s) ||
-			 (s % 2)	  && (tid < s - 1)))
-			sdata[tid] = min(sdata[tid] , sdata[tid+s]);
-		
+		if(tid<length/2)
+			sdata[tid] = min(sdata[tid], sdata[length-1-tid]);
 		__syncthreads();
+
+		length = (length + 1) / 2;
 	}
-	
 	if(tid == 0)
 		d_out[blockIdx.x] = sdata[0];
 }
 
-__global__ void reduce_calMax(float* d_out, const float* const d_in, const size_t size)
+__global__ void reduce_calMax(float* d_out, const float* const d_in)
 {	
 	// 1. Use shared Mem
 	extern __shared__ float sdata[];
@@ -122,17 +123,17 @@ __global__ void reduce_calMax(float* d_out, const float* const d_in, const size_
 	__syncthreads();
 	
 	// 2. Reduce
-	for(int s = blockDim.x / 2 ; s>0 ; s=(s+1)/2 )
-	{
-		if  ((tid + s<size) &&			
-			((s % 2 == 0) && (tid < s) ||
-			 (s % 2)	  && (tid < s-1)))
-			sdata[tid] = max(sdata[tid] , sdata[tid+s]);
-		
+	int length = (int)blockDim.x;
+	for (int i = 0; length>1; ++i)
+	{								
+		if (tid<(length / 2))
+			sdata[tid] = max(sdata[tid], sdata[length - 1 - tid]);
 		__syncthreads();
+
+		length = (length + 1) / 2;
 	}
 	
-	if(tid == 0)
+	if (tid == 0)
 		d_out[blockIdx.x] = sdata[0];
 }
 
@@ -150,11 +151,11 @@ void reduce(const float* const d_in,
 	checkCudaErrors(cudaMemset((void **) d_intermediate, 0.0f, sizeof(float) * blocks));
 	checkCudaErrors(cudaMalloc((void **) &d_out, sizeof(float)));	
 	
-	reduce_calMax << <blocks, threads, threads * sizeof(float) >> >(d_intermediate, d_in, size);
+	reduce_calMax << <blocks, threads, threads * sizeof(float) >> >(d_intermediate, d_in);
 	
 	threads=blocks;
 	blocks=1;
-	reduce_calMax << <blocks, threads, threads * sizeof(float) >> >(d_out, d_intermediate, size);
+	reduce_calMax << <blocks, threads, threads * sizeof(float) >> >(d_out, d_intermediate);
 	checkCudaErrors(cudaMemcpy(&max_logLum, d_out, sizeof(float), cudaMemcpyDeviceToHost));
 	
 	// 2. Min reduce	
@@ -162,11 +163,11 @@ void reduce(const float* const d_in,
 	blocks = (size + threads - 1) / threads;			
 	
 	checkCudaErrors(cudaMemset((void **) d_intermediate, 1.0f, sizeof(float) * blocks));	
-	reduce_calMin << <blocks, threads, threads * sizeof(float) >> >(d_intermediate, d_in, size);
+	reduce_calMin << <blocks, threads, threads * sizeof(float) >> >(d_intermediate, d_in);
 	
-	threads=blocks;
-	blocks=1;
-	reduce_calMin << <blocks, threads, threads * sizeof(float) >> >(d_out, d_intermediate, size);
+	threads = blocks;
+	blocks = 1;
+	reduce_calMin << <blocks, threads, threads * sizeof(float) >> >(d_out, d_intermediate);
 	checkCudaErrors(cudaMemcpy(&min_logLum, d_out, sizeof(float), cudaMemcpyDeviceToHost));
 
 	// Clean up
@@ -175,17 +176,20 @@ void reduce(const float* const d_in,
 }	
 
 // Histogram
-__global__ void hist_cal(unsigned int *d_out, const float* const d_in, float *min_logLum, float *range_logLum, const size_t numBins, const size_t size)
+__global__ void hist_cal(unsigned int *d_out, const float* const d_in, float min_logLum, float range_logLum, const size_t numBins, const size_t size)
 {
-	// bin = (lum[i] - lumMin) / lumRange * numBins
 	int myId = blockDim.x*blockIdx.x + threadIdx.x;
 	if (myId >= size)
+	{
+		printf("Overflow!!!\n");
 		return;
+	}	
 
-	int bin = (d_in[myId] - *min_logLum) / *range_logLum * numBins;
+	// bin = (lum[i] - lumMin) / lumRange * numBins
+	int bin = (d_in[myId] - min_logLum) / range_logLum * numBins;
+	bin = bin <= (numBins - 1) ? bin : (numBins - 1);
 	atomicAdd(&(d_out[bin]), 1);
 }
-
 
 // Scan
 __global__ void scan_cal(unsigned int *d_cdf, unsigned int *d_bins, const size_t numBins)
@@ -194,18 +198,25 @@ __global__ void scan_cal(unsigned int *d_cdf, unsigned int *d_bins, const size_t
 	if (myId >= numBins)
 		return;
 
+	int tid = threadIdx.x;
 	extern __shared__ unsigned int adata[];
-	adata[myId] = d_bins[myId];
+	adata[tid] = d_bins[myId];
 	__syncthreads();
 
-	for (int interval = 1; interval < numBins; ++interval)
+	int interval=0;
+	int current_cdf= adata[tid];
+	for (int level = 0; interval < numBins; ++level)
 	{
-		if (myId >= interval)
-			adata[myId] += adata[myId - interval];
+		interval = powf(2, level);
+		if (myId >= interval)		
+			current_cdf += adata[tid - interval];
+
+		__syncthreads();
+		adata[tid] = current_cdf;
 		__syncthreads();
 	}
 
-	d_cdf[myId]= adata[myId];
+	d_cdf[myId]= adata[tid];
 	__syncthreads();
 }
 
@@ -231,8 +242,7 @@ void your_histogram_and_prefixsum(const float* const d_logLuminance,
 
   // Step 1: Find the minimum and maximum value
   int ARRAY_BYTES = numRows * numCols;
-  // declare GPU memory pointers
-  
+  // declare GPU memory pointers  
   reduce(d_logLuminance, ARRAY_BYTES, min_logLum, max_logLum);
 
   // Step 2: Subtract minimum and maximum value to find the range
@@ -240,15 +250,22 @@ void your_histogram_and_prefixsum(const float* const d_logLuminance,
 
   // Step 3: Generate a histogram of all the values
   unsigned int *d_bins;
-  checkCudaErrors(cudaMalloc((void **)& d_bins, numBins));
+  checkCudaErrors(cudaMalloc((void **)& d_bins, numBins * sizeof(unsigned int)));  
+  checkCudaErrors(cudaMemset((void **)d_bins, 0, sizeof(unsigned int)*numBins));
 
   int threads = 1024;
-  int blocks = (ARRAY_BYTES + threads - 1) / threads;  
-  hist_cal << <blocks, threads >> >(d_bins, d_logLuminance, &min_logLum, &range_logLum, numBins, ARRAY_BYTES);
-
+  int blocks = (ARRAY_BYTES + threads - 1) / threads; 
+    
+  hist_cal << <blocks, threads >> > (d_bins, d_logLuminance, min_logLum, range_logLum, numBins, ARRAY_BYTES);
+  
   // Step 4: Perform an exclusive scan (prefix sum) on the histogram to get
   //		 the cumulative distribution of luminance values
   threads = (numBins < 1024) ? numBins : 1024;
   blocks = (numBins + threads - 1) / threads;
   scan_cal << <blocks, threads, numBins* sizeof(unsigned int)>> >(d_cdf, d_bins, numBins);
+
+  int h_cdf[1024];
+  cudaMemcpy(h_cdf, d_cdf, sizeof(unsigned int)*numBins, cudaMemcpyDeviceToHost);
+
+  checkCudaErrors(cudaFree(d_bins));
 }

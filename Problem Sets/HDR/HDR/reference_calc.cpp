@@ -39,5 +39,15 @@ void referenceCalculation(const float* const h_logLuminance, unsigned int* const
     h_cdf[i] = h_cdf[i - 1] + histo[i - 1];
   }
 
+  printf("{ ");
+  for (int i = 0; i < numBins; i++)
+  {
+	  if (i % 10 == 0)
+		  printf("\n%d:\t", i / 16);
+	  printf("%d ", h_cdf[i]);
+  }
+  printf("}\n");
+
+
   delete[] histo;
 }
