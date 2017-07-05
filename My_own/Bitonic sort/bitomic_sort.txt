@@ -1,0 +1,79 @@
+*最近在上Udacity的《Introduction to parallel programming》课程，里面介绍了一种很有趣的平行算法——Bitonic sort（双调排序）算法。在课程上我一直没懂为什么Bitonic sort算法保证了排序的正确性，于是花了几天功夫查找了相关资料。希望有同样疑问的你看到这篇文章会有所启示~*
+
+----------
+[TOC]
+## Bitonic sequence
+为了明白Bitonic sort算法，我们首先要了解Bitonic sequence（双调序列）。
+如果一个序列A=[x0, x1, x2, ..., xn-1]，存在一个下标i（0≤i≤n-1），使得：
+> x<sub>0</sub >≤ x<sub>1</sub>≤ ...≤ x<sub>i</sub>, and  x<sub>i</sub>≥ x<sub>i+1</sub>≥ ...≥ x<sub>n-1</sub>
+
+ 那么我们称这个序列是Bitonic（双调的）。
+值得注意的是：
+1. 一个序列如果是完全的升序或降序（或者说非降序和非升序更为严谨，但是在本文中为了方便理解，认为升序=非降序，降序=非升序），它也是Bitonic的。
+2. Bitonic序列的子序列仍为Bitonic的。
+3. 将一个一个Bitonic序列进行循环移位操作后，也是Bitonic序列（比如说(d, a, b, c)向右循环移位一次后变为(c, d, a, b)）。
+因此Bitonic会出现以下两种形式：
+![2-form bitonic sequence](http://img.blog.csdn.net/20170702170218195?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvdTAxMDQ0NTAwNg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+这说明，一个序列只要全部循环移位以后，能够出现up->down的形式，就是Bitonic的。
+
+## Bitonic sort
+介绍完Bitonic序列后，我们首先介绍Bitonic排序算法本身。然后再给出算法正确性的证明。
+下图来自[wiki](https://en.wikipedia.org/wiki/Bitonic_sorter)，图中对16个元素进行升序排序。
+![wiki-16-sequnce-sort](http://img.blog.csdn.net/20170702170655890?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvdTAxMDQ0NTAwNg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+1. 图中的**箭头**代表comparator（比较器）。如果网络上的两条线接在同一个comparator的两端，那么这两个线上此时的数据要进行比较，其中数值较大的放在箭头所指的方向，如下图所示。
+![comparator](http://img.blog.csdn.net/20170702172648928?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvdTAxMDQ0NTAwNg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+2. 在图中的**红色区域**中，在上半区域中的值要和下半部分进行比较，在同一红色区域中所有箭头指向方向相同（向下或向上）。当这样一个红色区域的箭头所指方向为下是（如图深红色区域），当接收长度为n的Bitonic序列，经过该红色区域计算后，最小n/2个元素会被调至的上半区域，最大的n/2个元素会被调至下半区域，且上下两个区域的序列仍为Bitonic序列。反之亦然（浅红色区域）。具体证明在后文。
+3. **蓝色区域**接受长度为n的Bitonic序列，然后把它传递给一个同样需要输入大小为n的Bitonic序列的红色区域，将计算结果传递给两个方向相同，需要输入大小为n/2的Bitonic序列的红色区域。然后每个区域又分布再传递给两个方向相同，需要输入大小为n/（2×2）的Bitonic序列的红色区域。。。依次类推。经过**蓝色区域**计算后，输入的Bitonic序列变成一个**完全递增**的序列。
+4. **绿色区域**与蓝色区域计算方法相同，最终输出完全递减的序列。
+因为Bitonic sort网络最后一部分是蓝色区域，因而最后整体的输出是一个递增序列。
+
+## Correctness of Bitonic sort
+证明Bitonic排序算法的正确性，焦点问题就是上述步骤2中：
+> 当一个长度为n的Bitonic序列经过一个深红色区域计算后，为什么：
+> ① 最小n/2个元素会被调至的上半区域，最大的n/2个元素会被调至下半区域？
+> ② 上半区域和下半区域的序列仍为Bitonic序列？
+
+先解答第一个问题，为什么①最小n/2个元素会被调至的上半区域，最大的n/2个元素会被调至下半区域？
+为了证明这一点，先了解一个0-1-Bitonic序列概念。
+
+### 0-1-Bitonic序列
+一个序列里面所有元素的值为0或1，则这个序列是**0-1序列**。
+当一个0-1序列只包含最多两次0和1之间的转换时，这个序列是**0-1-Bitonic序列**，比如：
+> x<sub>0</sub>, ..., x<sub>k-1</sub> = 0 ,     x<sub>k</sub>, ..., x<sub>m-1</sub> = 1 ,     x<sub>m</sub>, ..., x<sub>n-1</sub> = 0   or
+> x<sub>0</sub>, ..., x<sub>k-1</sub> = 1 ,     x<sub>k</sub>, ..., x<sub>m-1</sub> = 0 ,     x<sub>m</sub>, ..., x<sub>n-1</sub> = 1
+
+下面图片展示了6种0-1-Bitonic序列，白色部分代表数值都为0，灰色部分代表数值都为1。
+![0-1-sequence](http://img.blog.csdn.net/20170702170800429?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvdTAxMDQ0NTAwNg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+一个0-1-Bitonic序列通过红色区域的计算方法后，仍为0-1-Bitonic序列。举例如下：
+![Bn-network](http://img.blog.csdn.net/20170702170835382?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvdTAxMDQ0NTAwNg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+
+### 普通Bitonic序列的转换
+当我们把一个普通Bitonic序列中最大的n/2个值赋为1，其他赋值为0时，我们就把这个普通Bitonic序列转化成0-1-Bitonic序列，其中0和1各出现过n/2次。
+![up-down](http://img.blog.csdn.net/20170702171008536?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvdTAxMDQ0NTAwNg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+通过看上图中的例子，最小n/2个元素会被调至的上半区域，最大的n/2个元素会被调至下半区域。因此，我们解决了问题①。
+
+② 上半区域和下半区域的序列仍为Bitonic序列？会不会经过这个计算后，序列就乱了呢？
+不会。
+还是通过上文的例子来看更为直观，例子如下图。
+![still-bitonic](http://img.blog.csdn.net/20170702171125493?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvdTAxMDQ0NTAwNg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+可以看出，其实通过一次红色区域的计算后，就是从Bitonic序列取长度为n/2的两个子序列，因此上半区域和下半区域的序列仍为Bitonic序列。解决了问题②。
+
+## Alternative representation
+![Alternative representation](http://img.blog.csdn.net/20170702173025977?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvdTAxMDQ0NTAwNg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+上图是Bitonic排序一个更常用的表示形式，对应于文本的第一幅描述Bitonic网络的图。从图中可以观察到，所有的有向箭头都变成了无向的，没有了绿色区域，加上了一些黄色的区域。
+1. 无向箭头就是原Bitonic网络中的向下箭头，箭头指向方向为两个数值中最大的那个。
+2. 原图中，x<sub>i</sub>和x<sub>i+n/2</sub>进行比较，而现在是x<sub>i</sub>和x<sub>n-i-1</sub>进行比较。这么做的原因是原来是一个up和另一个down的序列进行对比，而现在是两个up序列进行对比，这样做的实质是和之前比较“相同”位置的数据。
+因此两个网络是等价的，相比于之前的网络，这个网络编程起来更为方便，直观。
+
+## Analysis
+Step Complexity: O(log<sup>2</sup>n)
+Work Complexity: O(nlog<sup>2</sup>n)
+一直以来，这个网络只能处理对2<sup>n</sup>个数据的排序，因此我一直还有一个疑问：如果我们的输入并不是2<sup>n</sup>个，那要怎么排序呢？网上我找到的答案就是向上把它填充为最接近的2<sup>k</sup>，填充的值为正无穷。接着就按照这个网络进行排序，最后截取前n个真正输入的长度。
+
+## 总结
+在我看来Bitonic sort(双调排序)是一个很神奇很有趣的算法，无论针对什么样的数据输入，它都是做一样的事情，且没有复杂的分支计算，这样就使得它特别适合GPU编程。其实对于所有种类的sort network有更general的证明：如果一个sort network可以对任意0-1序列进行正确地排序，则可以对普通的序列排序也是正确的。有兴趣的同学看[这个链接](http://www.iti.fh-flensburg.de/lang/algorithmen/sortieren/networks/nulleinsen.htm)。
+
+## Reference
+1. [Bitonic sorter from Wikipedia](https://en.wikipedia.org/wiki/Bitonic_sorter)
+2. [Bitonic sorter from GeeksforGeeks](http://www.geeksforgeeks.org/bitonic-sort/) 
+3. [Bitonic sorter from Other link](http://www.inf.fh-flensburg.de/lang/algorithmen/sortieren/bitonic/bitonicen.htm) 
